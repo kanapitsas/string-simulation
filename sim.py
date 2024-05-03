@@ -5,19 +5,21 @@ import scipy
 from typing import Tuple
 from tqdm import trange
 
-# Physical constants
+# Physical parameters
 
 b = 4 # Ns/m
-L = 0.426 # m
-c = 120 # m/s
+L = .25 # m
+c = 200 # m/s
 
 # Simulation parameters
 
-n = 400
+n = 200
 delta_x = L/n # m (spacial resolution)
-delta_t = delta_x / (c * np.sqrt(2))
+delta_t = delta_x / (c * np.sqrt(2)) # minimum delta_t for numerical stability
 f = 1/delta_t
 print('Sampling frequency is', f, 'hz')
+
+# --- Initial state ---
 
 def pluck(l: float, delta_y: float) -> np.ndarray:
     '''Get y with an initial state, plucking the string at length l with displacement delta_y'''
@@ -38,12 +40,16 @@ def gaussian_smooth(arr: np.ndarray, sigma: float) -> np.ndarray:
     smoothed_arr = np.convolve(arr, kernel, mode='same')
     return smoothed_arr
 
+# --- derivation ---
+
 def partial_x2(y: np.ndarray) -> np.ndarray:
     '''Second spatial derivative using central differences'''
     d2y_dx2 = (np.roll(y, -1) - 2 * y + np.roll(y, 1)) / delta_x**2
     d2y_dx2[0] = 0  # Dirichlet boundary conditions
     d2y_dx2[-1] = 0
     return d2y_dx2
+
+# --- simulation ---
 
 def timestep(y: np.ndarray, v: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     '''Performs one time step of the wave equation'''
@@ -53,32 +59,29 @@ def timestep(y: np.ndarray, v: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     y += v       * delta_t
     return y, v
 
-x = np.linspace(0, L, n)
-y = pluck(0.1, 0.007)
-y = gaussian_smooth(y, 1) # not sure if that changes anything
-v = np.zeros(n)
+# --- recording
 
-recording_length = 1 # s
-n_recording = int(recording_length / delta_t)
-microphone = np.zeros(n_recording)
-for i in trange(n_recording):
-    y, v = timestep(y, v)
-    microphone[i] = (y[n//10])
-
-# Normalization
 def normalize(a: np.ndarray) -> np.ndarray:
-    a -= np.min(a)
-    a /= np.max(a)
-    return (a - .5) * 2
+        a -= np.min(a)
+        a /= np.max(a)
+        return (a - .5) * 2
 
-audio = normalize(microphone)
+def perform_recording(y, length: float, microphone_pos: float, filename: str) -> None:
+    v = np.zeros(n)
+    n_recording = int(length / delta_t)
+    microphone = np.zeros(n_recording)
 
-scipy.io.wavfile.write(filename='microphone.wav', rate=int(f), data=audio)
+    for i in trange(n_recording):
+        y, v = timestep(y, v)
+        microphone[i] = (y[int(n * microphone_pos/L)])
 
+    audio = normalize(microphone)
+    scipy.io.wavfile.write(filename=filename, rate=int(f), data=audio)
 
-if False:
+# --- visualization ---
+
+def visualize(y):
     x = np.linspace(0, L, n)
-    y = pluck(0.05, 0.007)
     v = np.zeros(n)
 
     fig, ax = plt.subplots()
@@ -94,3 +97,9 @@ if False:
 
     ani = animation.FuncAnimation(fig, animate, frames=10, interval=1, blit=True)
     plt.show()
+
+if __name__ == '__main__':
+    y_0 = pluck(0.1, 0.007)
+    y_0 = gaussian_smooth(y_0, 1) # not sure if that changes anything
+
+    perform_recording(y_0, 3, .15, 'recording.wav')
