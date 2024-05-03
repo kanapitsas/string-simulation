@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import scipy
+from typing import Tuple
 from tqdm import trange
 
 # Physical constants
@@ -18,7 +19,7 @@ delta_t = delta_x / (c * np.sqrt(2))
 f = 1/delta_t
 print('Sampling frequency is', f, 'hz')
 
-def pluck(l: float, delta_y: float):
+def pluck(l: float, delta_y: float) -> np.ndarray:
     '''Get y with an initial state, plucking the string at length l with displacement delta_y'''
     y = np.zeros(n)
     n_displaced = int(n*(l/L))
@@ -30,31 +31,22 @@ def pluck(l: float, delta_y: float):
 
     return y
 
-def gaussian_smooth(arr, sigma):
-    """
-    Smooths a 1D NumPy array using a Gaussian kernel.
-
-    Parameters:
-        arr (numpy array): Input array to be smoothed.
-        sigma (float): Standard deviation of the Gaussian kernel.
-
-    Returns:
-        smoothed_arr (numpy array): Smoothed array with the same length as the original.
-    """
+def gaussian_smooth(arr: np.ndarray, sigma: float) -> np.ndarray:
+    '''Smooths a 1D NumPy array using a Gaussian kernel.'''
     kernel = np.exp(-((np.arange(len(arr)) - len(arr) // 2) ** 2) / (2 * sigma ** 2))
     kernel /= np.sum(kernel)
     smoothed_arr = np.convolve(arr, kernel, mode='same')
     return smoothed_arr
 
-def partial_x2(y):
-    """ Second spatial derivative using central differences """
+def partial_x2(y: np.ndarray) -> np.ndarray:
+    '''Second spatial derivative using central differences'''
     d2y_dx2 = (np.roll(y, -1) - 2 * y + np.roll(y, 1)) / delta_x**2
     d2y_dx2[0] = 0  # Dirichlet boundary conditions
     d2y_dx2[-1] = 0
     return d2y_dx2
 
-def timestep(y, v):
-    '''Performs one timestep of the wave equation with damping'''
+def timestep(y: np.ndarray, v: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    '''Performs one time step of the wave equation'''
     d2y_dx2 = partial_x2(y)
     d2y_dt2 = c**2 * d2y_dx2 - b * v
     v += d2y_dt2 * delta_t
@@ -74,7 +66,7 @@ for i in trange(n_recording):
     microphone[i] = (y[n//10])
 
 # Normalization
-def normalize(a):
+def normalize(a: np.ndarray) -> np.ndarray:
     a -= np.min(a)
     a /= np.max(a)
     return (a - .5) * 2
