@@ -100,6 +100,4 @@ def visualize(y):
 
 if __name__ == '__main__':
     y_0 = pluck(0.1, 0.007)
-    y_0 = gaussian_smooth(y_0, 1) # not sure if that changes anything
-
-    perform_recording(y_0, 3, .15, 'recording.wav')
+    visualize(y_0)
