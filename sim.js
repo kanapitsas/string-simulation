@@ -5,7 +5,7 @@ const L = 0.25; // m
 let c = 200; // m/s
 let n = 100;
 
-let delta_x = L / n;
+let delta_x = L / (n-1);
 let delta_t = delta_x / (c * Math.sqrt(2)); // stability condition
 let f = 1 / delta_t;
 let timesteps_per_frame = 1
@@ -41,8 +41,14 @@ function timestep(y, v) {
     const d2y_dt2 = math.subtract(math.multiply(math.square(c), d2y_dx2), math.multiply(b, v));
     v = math.add(v, math.multiply(d2y_dt2, delta_t));
     y = math.add(y, math.multiply(v, delta_t));
+
+    // Enforce boundary conditions explicitly
+    y[0] = 0;
+    y[n - 1] = 0;
+
     return [y, v];
 }
+
 
 // Prepare data for plotting
 const x = [...Array(n).keys()].map(i => i * delta_x);
@@ -59,11 +65,11 @@ const trace = {
 const layout = {
     title: 'String Displacement Over Time',
     xaxis: {
-        title: 'x (position along the string, in m)',
+        title: 'x (m)',
         range: [0, L]  // Set the range of the x-axis from 0 to L (length of the string)
     },
     yaxis: {
-        title: 'y (vertical displacement, in m)',
+        title: 'y (m)',
         range: [-0.01, 0.01]  // Set the range of the y-axis from -0.01 to 0.01 meters
     },
     showlegend: false
@@ -150,7 +156,7 @@ function updateN(newN) {
     const oldV = v.slice();  // Copy the current v array
 
     n = newN;  // Update n with the new value
-    delta_x = L / n;
+    delta_x = L / (n-1);
     delta_t = delta_x / (c * Math.sqrt(2));
     f = 1/delta_t
     document.getElementById('frequency-display').textContent = f.toFixed(2) + ' Hz';
@@ -201,5 +207,36 @@ document.getElementById('pause-btn').addEventListener('click', function() {
     this.textContent = isPaused ? 'Resume' : 'Pause';  // Update button
     if (!isPaused) {
         requestAnimationFrame(updatePlot)
+    }
+});
+
+// Drawing
+
+let isDrawing = false;
+
+function toggleDrawing() {
+    isDrawing = !isDrawing;
+    document.getElementById('mode-display').textContent = isDrawing ? 'DRAW' : 'VIEW';
+    if (isDrawing) {
+        isPaused = true;
+    }
+}
+
+// Function to find nearest index based on mouse X position
+function findNearestIndex(mouseX) {
+    const plotRect = plotDiv.getBoundingClientRect();
+    const xScaled = (mouseX - plotRect.left) * (L / plotRect.width);
+    return Math.round(xScaled / delta_x);
+}
+
+plotDiv.addEventListener('mousedown', function(event) {
+    toggleDrawing();
+});
+
+plotDiv.addEventListener('mousemove', function(event) {
+    if (isDrawing) {
+        const index = findNearestIndex(event.clientX);
+        y[index] = -(((event.clientY - plotDiv.getBoundingClientRect().top) / plotDiv.clientHeight) * 0.034 - 0.018); // Invert and scale Y based on plot height
+        Plotly.redraw(plotDiv);
     }
 });
