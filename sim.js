@@ -1,15 +1,16 @@
 // Constants and initial conditions
 const b = 4; // Ns/m
 const L = 0.25; // m
-const c = 200; // m/s
+let c = 200; // m/s
 let n = 100;
 let delta_x = L / n;
 let delta_t = delta_x / (c * Math.sqrt(2)); // stability condition
-const f = 1 / delta_t;
-console.log('Sampling frequency is', f, 'Hz');
+let f = 1 / delta_t;
 
 let y = pluck(0.1, 0.007);
 let v = math.zeros(n).toArray();
+
+let isPaused = true;
 
 // Functions used in the simulation
 function pluck(l, delta_y) {
@@ -68,21 +69,23 @@ Plotly.newPlot(plotDiv, [trace], layout);
 
 // Update the plot in real-time
 function updatePlot() {
-    [y, v] = timestep(y, v);
-    Plotly.animate(plotDiv, {
-        data: [{y: y}],
-        traces: [0],
-        layout: {}
-    }, {
-        transition: {
-            duration: 0,
-        },
-        frame: {
-            duration: 0,
-            redraw: true
-        }
-    });
-    requestAnimationFrame(updatePlot); // Schedule the next frame
+    if (!isPaused) {
+        [y, v] = timestep(y, v);
+        Plotly.animate(plotDiv, {
+            data: [{y: y}],
+            traces: [0],
+            layout: {}
+        }, {
+            transition: {
+                duration: 0,
+            },
+            frame: {
+                duration: 0,
+                redraw: true
+            }
+        });
+        requestAnimationFrame(updatePlot); // Schedule the next frame
+    }
 }
 
 requestAnimationFrame(updatePlot); // Start the animation loop
@@ -107,36 +110,57 @@ function interpolateArray(data, newLength) {
 }
 
 
-function updateN(newN) {
-    const oldY = y.slice();  // Copy the current y array
-    const oldV = v.slice();  // Copy the current v array
+function updateValue({ newN = n, newC = c }) {
 
-    n = parseInt(newN);  // Update n with the new value
-    delta_x = L / n;
-    delta_t = delta_x / (c * Math.sqrt(2));
+    if (newC != c)
+        c = newC;
+        delta_t = delta_x / (c * Math.sqrt(2));
 
-    // Interpolate the old arrays to fit the new size
-    y = interpolateArray(oldY, n);
-    v = interpolateArray(oldV, n);
+    if (newN != n) {
+        const oldY = y.slice();  // Copy the current y array
+        const oldV = v.slice();  // Copy the current v array
 
-    // Redraw the plot with the new setup
-    Plotly.newPlot(plotDiv, [{
-        x: [...Array(n).keys()].map(i => i * delta_x),
-        y: y,
-        mode: 'lines',
-        line: {color: 'brown'}
-    }], {
-        title: 'String Displacement Over Time',
-        xaxis: {title: 'x (m)', range: [0, L]},
-        yaxis: {title: 'y (m)', range: [-0.01, 0.01]},
-        showlegend: false
-    });
+        n = newN;  // Update n with the new value
+        delta_t = delta_x / (c * Math.sqrt(2));
+        delta_x = L / n;
+        f = 1/delta_t
+        document.getElementById('frequency-display').textContent = f.toFixed(2) + ' Hz';
+
+        // Interpolate the old arrays to fit the new size
+        y = interpolateArray(oldY, n);
+        v = interpolateArray(oldV, n);
+
+        // Redraw the plot with the new setup
+        Plotly.newPlot(plotDiv, [{
+            x: [...Array(n).keys()].map(i => i * delta_x),
+            y: y,
+            mode: 'lines',
+            line: {color: 'brown'}
+        }], {
+            title: 'String Displacement Over Time',
+            xaxis: {title: 'x (m)', range: [0, L]},
+            yaxis: {title: 'y (m)', range: [-0.01, 0.01]},
+            showlegend: false
+        });
+    }
 }
 
-
-
+// Event listeners
 
 document.getElementById('n-slider').addEventListener('input', function() {
     document.getElementById('n-value').textContent = this.value;
-    updateN(this.value);
+    updateValue({newN: parseInt(this.value)});
+});
+
+document.getElementById('c-slider').addEventListener('input', function() {
+    document.getElementById('c-value').textContent = this.value;
+    updateValue({newC: parseInt(this.value)});
+});
+
+document.getElementById('pause-btn').addEventListener('click', function() {
+    isPaused = !isPaused;
+    this.textContent = isPaused ? 'Resume' : 'Pause';  // Update button
+    if (!isPaused) {
+        requestAnimationFrame(updatePlot)
+    }
 });
