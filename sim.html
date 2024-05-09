@@ -7,6 +7,13 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
+    <label for="n-slider">Number of Points (n): </label>
+    <input type="range" id="n-slider" min="10" max="500" value="200">
+    <span id="n-value">200</span>
+    <br>
+    <label for="frequency-display">Sampling Frequency (Hz): </label>
+    <span id="frequency-display"></span>
+    <br>
     <div id="plot"></div>
     <script src="sim.js"></script>
 </body>

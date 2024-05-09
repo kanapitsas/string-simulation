@@ -2,14 +2,43 @@
 const b = 4; // Ns/m
 const L = 0.25; // m
 const c = 200; // m/s
-const n = 100;
-const delta_x = L / n;
-const delta_t = delta_x / (c * Math.sqrt(2)); // stability condition
+let n = 100;
+let delta_x = L / n;
+let delta_t = delta_x / (c * Math.sqrt(2)); // stability condition
 const f = 1 / delta_t;
 console.log('Sampling frequency is', f, 'Hz');
 
 let y = pluck(0.1, 0.007);
 let v = math.zeros(n).toArray();
+
+// Functions used in the simulation
+function pluck(l, delta_y) {
+    const y = math.zeros(n).toArray();
+    const n_displaced = parseInt(n * (l / L));
+    for (let i = 1; i < n_displaced; i++) {
+        y[i] = (i / n_displaced) * delta_y;
+    }
+    for (let i = n_displaced; i < n - 1; i++) {
+        y[i] = (1 - (i - n_displaced + 1) / (n - n_displaced)) * delta_y;
+    }
+    return y;
+}
+
+function partial_x2(y) {
+    const y_right = y.slice(1);
+    const y_left = y.slice(0, -1);
+    y_right.push(0);
+    y_left.unshift(0);
+    return y_right.map((yr, i) => (yr - 2 * y[i] + y_left[i]) / Math.pow(delta_x, 2));
+}
+
+function timestep(y, v) {
+    const d2y_dx2 = partial_x2(y);
+    const d2y_dt2 = math.subtract(math.multiply(math.square(c), d2y_dx2), math.multiply(b, v));
+    v = math.add(v, math.multiply(d2y_dt2, delta_t));
+    y = math.add(y, math.multiply(v, delta_t));
+    return [y, v];
+}
 
 // Prepare data for plotting
 const x = [...Array(n).keys()].map(i => i * delta_x);
@@ -21,7 +50,7 @@ const trace = {
     y: y,
     mode: 'lines',
     name: 'String Displacement',
-    line: {color: 'red'}
+    line: {color: 'brown'}
 };
 const layout = {
     title: 'String Displacement Over Time',
@@ -53,36 +82,61 @@ function updatePlot() {
             redraw: true
         }
     });
+    requestAnimationFrame(updatePlot); // Schedule the next frame
 }
 
-// Run the simulation and update the plot every few milliseconds
-setInterval(updatePlot, 1);
+requestAnimationFrame(updatePlot); // Start the animation loop
 
-// Functions used in the simulation
-function pluck(l, delta_y) {
-    const y = math.zeros(n).toArray();
-    const n_displaced = parseInt(n * (l / L));
-    for (let i = 1; i < n_displaced; i++) {
-        y[i] = (i / n_displaced) * delta_y;
+// --- DYNAMIC UPDATES ---
+
+function interpolateArray(data, newLength) {
+    const interpolated = new Array(newLength).fill(0);
+    const factor = (data.length - 1) / (newLength - 1);
+    for (let i = 0; i < newLength; i++) {
+        const index = i * factor;
+        const lowerIndex = Math.floor(index);
+        const upperIndex = Math.ceil(index);
+        const weight = index - lowerIndex;
+        if (upperIndex >= data.length) {
+            interpolated[i] = data[lowerIndex];
+        } else {
+            interpolated[i] = data[lowerIndex] * (1 - weight) + data[upperIndex] * weight;
+        }
     }
-    for (let i = n_displaced; i < n - 1; i++) {
-        y[i] = (1 - (i - n_displaced + 1) / (n - n_displaced)) * delta_y;
-    }
-    return y;
+    return interpolated;
 }
 
-function partial_x2(y) {
-    const y_right = y.slice(1);
-    const y_left = y.slice(0, -1);
-    y_right.push(0);
-    y_left.unshift(0);
-    return y_right.map((yr, i) => (yr - 2 * y[i] + y_left[i]) / Math.pow(delta_x, 2));
+
+function updateN(newN) {
+    const oldY = y.slice();  // Copy the current y array
+    const oldV = v.slice();  // Copy the current v array
+
+    n = parseInt(newN);  // Update n with the new value
+    delta_x = L / n;
+    delta_t = delta_x / (c * Math.sqrt(2));
+
+    // Interpolate the old arrays to fit the new size
+    y = interpolateArray(oldY, n);
+    v = interpolateArray(oldV, n);
+
+    // Redraw the plot with the new setup
+    Plotly.newPlot(plotDiv, [{
+        x: [...Array(n).keys()].map(i => i * delta_x),
+        y: y,
+        mode: 'lines',
+        line: {color: 'brown'}
+    }], {
+        title: 'String Displacement Over Time',
+        xaxis: {title: 'x (m)', range: [0, L]},
+        yaxis: {title: 'y (m)', range: [-0.01, 0.01]},
+        showlegend: false
+    });
 }
 
-function timestep(y, v) {
-    const d2y_dx2 = partial_x2(y);
-    const d2y_dt2 = math.subtract(math.multiply(math.square(c), d2y_dx2), math.multiply(b, v));
-    v = math.add(v, math.multiply(d2y_dt2, delta_t));
-    y = math.add(y, math.multiply(v, delta_t));
-    return [y, v];
-}
+
+
+
+document.getElementById('n-slider').addEventListener('input', function() {
+    document.getElementById('n-value').textContent = this.value;
+    updateN(this.value);
+});
