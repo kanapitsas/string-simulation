@@ -1,11 +1,14 @@
 // Constants and initial conditions
-const b = 4; // Ns/m
+let b = 4; // Ns/m
 const L = 0.25; // m
+
 let c = 200; // m/s
 let n = 100;
+
 let delta_x = L / n;
 let delta_t = delta_x / (c * Math.sqrt(2)); // stability condition
 let f = 1 / delta_t;
+let timesteps_per_frame = 1
 
 let y = pluck(0.1, 0.007);
 let v = math.zeros(n).toArray();
@@ -68,9 +71,30 @@ const layout = {
 Plotly.newPlot(plotDiv, [trace], layout);
 
 // Update the plot in real-time
+let lastFrameTime = Date.now();
+let frameCount = 0;
+let fpsInterval = 1000; // time in ms to update the FPS counter
+let lastFpsUpdate = Date.now();
+
 function updatePlot() {
     if (!isPaused) {
-        [y, v] = timestep(y, v);
+        const now = Date.now();
+        const deltaTime = now - lastFrameTime;
+        lastFrameTime = now;
+
+        // Calculate FPS every second to reduce flickering in the display
+        if (now - lastFpsUpdate > fpsInterval) {
+            const fps = frameCount * 1000 / (now - lastFpsUpdate);
+            document.getElementById('fps-display').textContent = `FPS: ${fps.toFixed(2)}`;
+            document.getElementById('sim-speed-display').textContent = `${(timesteps_per_frame * fps / f).toFixed(5)}x`;
+            lastFpsUpdate = now;
+            frameCount = 0;
+        }
+        
+        frameCount++;
+        for (let i = 0; i < timesteps_per_frame; i++) {
+            [y, v] = timestep(y, v);
+        }
         Plotly.animate(plotDiv, {
             data: [{y: y}],
             traces: [0],
@@ -84,11 +108,9 @@ function updatePlot() {
                 redraw: true
             }
         });
-        requestAnimationFrame(updatePlot); // Schedule the next frame
+        requestAnimationFrame(updatePlot);  // Continue the animation loop regardless of pause state
     }
 }
-
-requestAnimationFrame(updatePlot); // Start the animation loop
 
 // --- DYNAMIC UPDATES ---
 
@@ -109,53 +131,70 @@ function interpolateArray(data, newLength) {
     return interpolated;
 }
 
+function updateTimestepsPerFrame(newTimestepsPerFrame) {
+    timesteps_per_frame = newTimestepsPerFrame;
+}
 
-function updateValue({ newN = n, newC = c }) {
+function updateB(newB) {
+    b = newB;
+}
 
-    if (newC != c)
-        c = newC;
-        delta_t = delta_x / (c * Math.sqrt(2));
+function updateC(newC) {
+    c = newC;
+    delta_t = delta_x / (c * Math.sqrt(2));
+}
 
-    if (newN != n) {
-        const oldY = y.slice();  // Copy the current y array
-        const oldV = v.slice();  // Copy the current v array
 
-        n = newN;  // Update n with the new value
-        delta_t = delta_x / (c * Math.sqrt(2));
-        delta_x = L / n;
-        f = 1/delta_t
-        document.getElementById('frequency-display').textContent = f.toFixed(2) + ' Hz';
+function updateN(newN) {
+    const oldY = y.slice();  // Copy the current y array
+    const oldV = v.slice();  // Copy the current v array
 
-        // Interpolate the old arrays to fit the new size
-        y = interpolateArray(oldY, n);
-        v = interpolateArray(oldV, n);
+    n = newN;  // Update n with the new value
+    delta_x = L / n;
+    delta_t = delta_x / (c * Math.sqrt(2));
+    f = 1/delta_t
+    document.getElementById('frequency-display').textContent = f.toFixed(2) + ' Hz';
 
-        // Redraw the plot with the new setup
-        Plotly.newPlot(plotDiv, [{
-            x: [...Array(n).keys()].map(i => i * delta_x),
-            y: y,
-            mode: 'lines',
-            line: {color: 'brown'}
-        }], {
-            title: 'String Displacement Over Time',
-            xaxis: {title: 'x (m)', range: [0, L]},
-            yaxis: {title: 'y (m)', range: [-0.01, 0.01]},
-            showlegend: false
-        });
-    }
+    // Interpolate the old arrays to fit the new size
+    y = interpolateArray(oldY, n);
+    v = interpolateArray(oldV, n);
+
+    // Redraw the plot with the new setup
+    Plotly.newPlot(plotDiv, [{
+        x: [...Array(n).keys()].map(i => i * delta_x),
+        y: y,
+        mode: 'lines',
+        line: {color: 'brown'}
+    }], {
+        title: 'String Displacement Over Time',
+        xaxis: {title: 'x (m)', range: [0, L]},
+        yaxis: {title: 'y (m)', range: [-0.01, 0.01]},
+        showlegend: false
+    });
 }
 
 // Event listeners
 
 document.getElementById('n-slider').addEventListener('input', function() {
     document.getElementById('n-value').textContent = this.value;
-    updateValue({newN: parseInt(this.value)});
+    updateN(parseInt(this.value));
+});
+
+document.getElementById('b-slider').addEventListener('input', function() {
+    document.getElementById('b-value').textContent = this.value;
+    updateB(parseInt(this.value));
 });
 
 document.getElementById('c-slider').addEventListener('input', function() {
     document.getElementById('c-value').textContent = this.value;
-    updateValue({newC: parseInt(this.value)});
+    updateC(parseInt(this.value));
 });
+
+document.getElementById('sim-speed-slider').addEventListener('input', function() {
+    document.getElementById('sim-speed-value').textContent = this.value;
+    updateTimestepsPerFrame(parseInt(this.value));
+});
+
 
 document.getElementById('pause-btn').addEventListener('click', function() {
     isPaused = !isPaused;
