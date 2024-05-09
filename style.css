@@ -1,0 +1,41 @@
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    padding: 10px;
+}
+
+.control-group {
+    flex: 1 1 200px; /* Grow to fill space, don't shrink, base width of 200px */
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    background-color: #f9f9f9; /* Light grey background */
+    border: 1px solid #ccc; /* Light grey border */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow for depth */
+    padding: 15px; /* Spacing inside each control group */
+}
+
+.control-group label {
+    margin-bottom: 5px;
+    font-weight: bold; /* Optional: Makes the label text bold */
+}
+
+.slider-container {
+    display: flex;
+    align-items: center; /* Vertical centering of slider and value */
+}
+
+.slider-container input[type="range"] {
+    flex: 1; /* Take up as much space as possible */
+    margin-right: 10px; /* Space between slider and value */
+}
+
+.slider-value {
+    white-space: nowrap; /* Prevent wrapping of text */
+    font-size: 1.2em; /* Larger font size */
+    width: 50px; /* Fixed width for values */
+    text-align: center;
+}

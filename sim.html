@@ -3,35 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <title>String Simulation</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.0.0/math.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <label for="n-slider">Number of Points (n): </label>
-    <input type="range" id="n-slider" min="10" max="500" value="100">
-    <span id="n-value">100</span>
-    <br>
-    <label for="frequency-display">Sampling Frequency (Hz): </label>
-    <span id="frequency-display"></span>
-    <br>
-    <label for="b-slider">Damping factor: </label>
-    <input type="range" id="b-slider" min="0" max="30" value="4">
-    <span id="b-value">4</span>
-    <br>
-    <label for="c-slider">Propagation Speed (m/s): </label>
-    <input type="range" id="c-slider" min="10" max="1000" value="200">
-    <span id="c-value">200</span>
-    <br>
-    <label for="sim-speed-slider">Timesteps per frame: </label>
-    <input type="range" id="sim-speed-slider" min="1" max="100" value="1">
-    <span id="sim-speed-value">1</span>
-    <br>
-    <button id="pause-btn">Start</button>
-    <br>
+    <div class="controls">
+        <div class="control-group">
+            <label for="n-slider">Number of Points (n):</label>
+            <div class="slider-container">
+                <input type="range" id="n-slider" min="10" max="500" value="100">
+                <span id="n-value" class="slider-value">100</span>
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="b-slider">Damping factor:</label>
+            <div class="slider-container">
+                <input type="range" id="b-slider" min="0" max="30" value="4">
+                <span id="b-value" class="slider-value">4</span>
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="c-slider">Propagation Speed (m/s):</label>
+            <div class="slider-container">
+                <input type="range" id="c-slider" min="10" max="1000" value="200">
+                <span id="c-value" class="slider-value">200</span>
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="sim-speed-slider">Timesteps per frame:</label>
+            <div class="slider-container">
+                <input type="range" id="sim-speed-slider" min="1" max="100" value="1">
+                <span id="sim-speed-value" class="slider-value">1</span>
+            </div>
+        </div>        
+        <button id="pause-btn">Start</button>
+    </div>
     <div id="plot"></div>
-    <span id="fps-display">FPS: 0</span>
-    <br>
-    <span id="sim-speed-display">0x</span>
+    <div id="plot-info">
+        <span id="fps-display">FPS: 0</span>
+        <span id="sim-speed-display">0x</span>
+    </div>    
     <script src="sim.js"></script>
 </body>
 </html>
