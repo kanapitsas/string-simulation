@@ -43,7 +43,7 @@
 #plot-info {
     position: absolute;
     bottom: 20px;
-    right: 20px;
+    left: 20px;
     background-color: rgba(255, 255, 255, 0.75); /* Semi-transparent white */
     padding: 5px;
     border-radius: 5px;

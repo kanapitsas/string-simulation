@@ -240,3 +240,31 @@ plotDiv.addEventListener('mousemove', function(event) {
         Plotly.redraw(plotDiv);
     }
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const plotInfo = document.getElementById('plot-info');
+    const plot = document.getElementById('plot');
+
+    function isElementInViewport(el) {
+        const rect = el.getBoundingClientRect();
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
+    }
+
+    function togglePlotInfoVisibility() {
+        if (isElementInViewport(plot)) {
+            plotInfo.style.display = 'block';
+        } else {
+            plotInfo.style.display = 'none';
+        }
+    }
+
+    document.addEventListener('scroll', togglePlotInfoVisibility);
+    window.addEventListener('resize', togglePlotInfoVisibility);
+    
+    togglePlotInfoVisibility();
+});
