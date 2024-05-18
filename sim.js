@@ -237,6 +237,7 @@ plotDiv.addEventListener('mousemove', function(event) {
     if (isDrawing) {
         const index = findNearestIndex(event.clientX);
         y[index] = -(((event.clientY - plotDiv.getBoundingClientRect().top) / plotDiv.clientHeight) * 0.034 - 0.018); // Invert and scale Y based on plot height
+        v[index] = 0
         Plotly.redraw(plotDiv);
     }
 });
